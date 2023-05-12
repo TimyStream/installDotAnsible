@@ -1,0 +1,52 @@
+---
+- name: Install Dotfiles on Ubuntu Machine
+  hosts: all
+  tasks:
+  - name: Add ppa for Fish Shell v3
+    ansible.builtin.apt_repository:
+      repo: ppa:fish-shell/release-3
+      state: present
+    become: true
+  - name: Install Fish Shell v3
+    ansible.builtin.apt:
+      package:
+        - fish
+      state: latest
+      update_cache: true
+    become: true
+  - name: Install Snap Core
+    community.general.snap:
+      name: core
+      state: present
+    become: true
+  - name: Install Snap Starship Prompt
+    community.general.snap:
+      name: starship
+      channel: edge
+      state: present
+    become: true
+  - name: Create .config folder in user home if not existing
+    ansible.builtin.file:
+      path: ~/.config/
+      state: directory
+    register: _configDir
+  - name: Create starship snap config folder
+    ansible.builtin.file:
+      path: ~/snap/starship/current/.config/
+      state: directory
+  - name: Download Starship Config
+    ansible.builtin.get_url:
+      url: https://raw.githubusercontent.com/TimyStream/dotfiles/remoteServer/.config/starship.toml
+      dest: ~/snap/starship/current/.config/starship.toml
+  - name: create fish config folder if not present
+    ansible.builtin.file:
+      path: "{{ _configDir.path }}fish"
+      state: directory
+  - name: Apply Starship CLI to Fish Shell
+    ansible.builtin.lineinfile:
+      path: "{{ _configDir.path }}fish/config.fish"
+      line: "starship init fish | source"
+      create: true
+#  - name: change standard shell to fish
+#   ansible.builtin.command:
+#      cmd: "chsh -s /usr/bin/fish"
